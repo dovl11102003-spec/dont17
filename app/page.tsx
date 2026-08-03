@@ -125,6 +125,7 @@ export default function Home() {
           <article className="quick-card"><div><span className="quick-icon">⇧</span><div><h2>Nhập danh sách học sinh</h2><p>Tải lên tệp Excel/CSV hoặc dán danh sách để thêm nhiều học sinh cùng lúc.</p></div></div><button>Nhập danh sách</button></article>
         </section>}
       </main>
+      <footer className="site-footer">Made by <strong>DoNT17</strong> with luv <span aria-label="love">&lt;3</span></footer>
       <div className="toast" aria-live="polite">{notice}</div>
     </div>
   );

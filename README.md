@@ -45,7 +45,9 @@ Ví dụ `APP_USERS_JSON`:
 
 Các giá trị vai trò hợp lệ: `admin`, `homeroom`, `subject`, `representative`.
 
-3. Chọn **Deploy**. Tệp `vercel.json` đã cấu hình lệnh build Next.js.
+3. Chọn **Deploy**. Lệnh `npm run build` và tệp `vercel.json` đều đã được cấu hình cho Next.js trên Vercel.
+
+Nếu dùng OpenAI Sites thay cho Vercel, chạy `npm run build:sites`.
 
 ## Lưu ý bảo mật
 
