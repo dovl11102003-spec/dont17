@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import AdminManager from "./AdminManager";
 
 type Attendance = "Có mặt" | "Đi muộn" | "Vắng có phép" | "Vắng không phép";
 type Phone = "Đã nộp" | "Không mang" | "Chưa nộp" | "Được phép giữ" | "";
@@ -122,7 +123,7 @@ export default function Home() {
           <div className="admin-grid">
             {[{icon:"🏫", title:"Lớp học", value:"0", text:"Tạo lớp, phân công GVCN và đại diện lớp", color:"blue"},{icon:"🎓", title:"Học sinh", value:"0", text:"Thêm từng em hoặc nhập danh sách Excel/CSV", color:"orange"},{icon:"👩‍🏫", title:"Tài khoản & phân quyền", value:"1", text:"Quản lý tài khoản và quyền truy cập theo lớp", color:"green"},{icon:"📱", title:"Trạng thái điện thoại", value:"4", text:"Tùy chỉnh tên, màu sắc và thứ tự hiển thị", color:"purple"}].map((item) => <article className="admin-card" key={item.title}><span className={`admin-icon ${item.color}`}>{item.icon}</span><div><small>{item.title}</small><strong>{item.value}</strong><p>{item.text}</p></div><button onClick={() => setNotice("Sẵn sàng kết nối cơ sở dữ liệu")}>Quản lý →</button></article>)}
           </div>
-          <article className="quick-card"><div><span className="quick-icon">⇧</span><div><h2>Nhập danh sách học sinh</h2><p>Tải lên tệp Excel/CSV hoặc dán danh sách để thêm nhiều học sinh cùng lúc.</p></div></div><button>Nhập danh sách</button></article>
+          <AdminManager />
         </section>}
       </main>
       <footer className="site-footer">Made by <strong>DoNT17</strong> with luv <span aria-label="love">&lt;3</span></footer>
