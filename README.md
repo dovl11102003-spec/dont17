@@ -10,6 +10,8 @@ Web app điểm danh đầu giờ và theo dõi trạng thái nộp điện tho�
 - Chỉ quản trị viên nhìn thấy khu vực quản trị hệ thống.
 - Giao diện điểm danh, theo dõi lớp, quản lý tài khoản và phân quyền.
 - Dữ liệu lớp và học sinh khởi tạo trống để nhà trường bổ sung sau.
+- Admin có thể tạo tài khoản, lớp, học sinh, nhập danh sách và cấp quyền trực tiếp trong app.
+- Dữ liệu được lưu dùng chung trong PostgreSQL.
 - Responsive cho máy tính, máy tính bảng và điện thoại.
 
 ## Chạy trên máy
@@ -29,6 +31,7 @@ Trong môi trường development, nếu chưa tạo `.env.local`, có thể dùn
 
    - `SESSION_SECRET`: chuỗi ngẫu nhiên dài, nên có ít nhất 32 ký tự.
    - `APP_USERS_JSON`: danh sách tài khoản ở dạng JSON.
+   - `DATABASE_URL`: chuỗi kết nối PostgreSQL từ nhà cung cấp cơ sở dữ liệu.
 
 Ví dụ `APP_USERS_JSON`:
 
@@ -46,6 +49,8 @@ Ví dụ `APP_USERS_JSON`:
 Các giá trị vai trò hợp lệ: `admin`, `homeroom`, `subject`, `representative`.
 
 3. Chọn **Deploy**. Lệnh `npm run build` và tệp `vercel.json` đều đã được cấu hình cho Next.js trên Vercel.
+
+Khi kết nối lần đầu, ứng dụng tự tạo các bảng tài khoản, lớp, học sinh và phân quyền. Tài khoản admin trong `APP_USERS_JSON` được dùng để đăng nhập ban đầu; sau đó admin có thể tạo thêm tài khoản ngay trong ứng dụng.
 
 Nếu dùng OpenAI Sites thay cho Vercel, chạy `npm run build:sites`.
 

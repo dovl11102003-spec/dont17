@@ -1,0 +1,5 @@
+const encoder = new TextEncoder();
+const hex = (bytes: Uint8Array) => Array.from(bytes).map((value) => value.toString(16).padStart(2, "0")).join("");
+const unhex = (value: string) => Uint8Array.from(value.match(/.{1,2}/g)?.map((part) => parseInt(part, 16)) || []);
+export async function hashPassword(password: string) { const salt = crypto.getRandomValues(new Uint8Array(16)); const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]); const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 120000, hash: "SHA-256" }, key, 256); return `${hex(salt)}:${hex(new Uint8Array(bits))}`; }
+export async function verifyPassword(password: string, stored: string) { const [saltHex, expected] = stored.split(":"); if (!saltHex || !expected) return false; const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]); const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: unhex(saltHex), iterations: 120000, hash: "SHA-256" }, key, 256); return hex(new Uint8Array(bits)) === expected; }
