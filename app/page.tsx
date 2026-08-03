@@ -1,33 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type Attendance = "Có mặt" | "Đi muộn" | "Vắng có phép" | "Vắng không phép";
 type Phone = "Đã nộp" | "Không mang" | "Chưa nộp" | "Được phép giữ" | "";
 type Student = { id: string; name: string; attendance: Attendance; phone: Phone };
 
-const initialStudents: Student[] = [
-  { id: "HS001", name: "Nguyễn Minh Anh", attendance: "Có mặt", phone: "Đã nộp" },
-  { id: "HS002", name: "Trần Gia Bảo", attendance: "Đi muộn", phone: "Đã nộp" },
-  { id: "HS003", name: "Lê Hoàng Duy", attendance: "Vắng có phép", phone: "" },
-  { id: "HS004", name: "Phạm Khánh Linh", attendance: "Có mặt", phone: "Chưa nộp" },
-  { id: "HS005", name: "Vũ Đức Minh", attendance: "Có mặt", phone: "Đã nộp" },
-  { id: "HS006", name: "Đỗ Ngọc Hà", attendance: "Có mặt", phone: "Không mang" },
-  { id: "HS007", name: "Hoàng Tuấn Kiệt", attendance: "Có mặt", phone: "Đã nộp" },
-  { id: "HS008", name: "Bùi Quỳnh Mai", attendance: "Có mặt", phone: "Đã nộp" },
-];
+const initialStudents: Student[] = [];
 
-const classes = [
-  { name: "10A1", teacher: "Nguyễn Thu Hà", total: 40, present: 38, phone: 37, done: true },
-  { name: "10A2", teacher: "Trần Văn Hùng", total: 42, present: 40, phone: 42, done: true },
-  { name: "11A1", teacher: "Phạm Minh Châu", total: 39, present: 39, phone: 31, done: false },
-  { name: "11A2", teacher: "Lê Thanh Tùng", total: 41, present: 38, phone: 38, done: true },
-  { name: "12A1", teacher: "Đỗ Ngọc Lan", total: 40, present: 0, phone: 0, done: false },
-];
+const classes: { name: string; teacher: string; total: number; present: number; phone: number; done: boolean }[] = [];
+type Session = { username: string; name: string; role: "admin" | "homeroom" | "subject" | "representative" };
+const roleLabels = { admin: "Quản trị viên", homeroom: "Giáo viên chủ nhiệm", subject: "Giáo viên bộ môn", representative: "Đại diện lớp" };
 
 const initials = (name: string) => name.split(" ").slice(-2).map((part) => part[0]).join("");
 
 export default function Home() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginError, setLoginError] = useState("");
   const [active, setActive] = useState("Điểm danh");
   const [students, setStudents] = useState(initialStudents);
   const [query, setQuery] = useState("");
@@ -35,13 +25,29 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [mobileMenu, setMobileMenu] = useState(false);
 
+  useEffect(() => {
+    fetch("/api/auth/session").then((response) => response.ok ? response.json() : null).then((data) => setSession(data?.user ?? null)).finally(() => setAuthLoading(false));
+  }, []);
+
+  const login = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoginError("");
+    const values = new FormData(event.currentTarget);
+    const response = await fetch("/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username: values.get("username"), password: values.get("password") }) });
+    const data = await response.json();
+    if (!response.ok) return setLoginError(data.error || "Không thể đăng nhập");
+    setSession(data.user);
+  };
+
+  const logout = async () => { await fetch("/api/auth/logout", { method: "POST" }); setSession(null); setActive("Điểm danh"); };
+
   const filtered = useMemo(() => students.filter((student) =>
     `${student.name} ${student.id}`.toLowerCase().includes(query.toLowerCase())), [students, query]);
   const metrics = useMemo(() => ({
-    present: 40 - students.filter((student) => student.attendance !== "Có mặt").length,
+    present: students.filter((student) => student.attendance === "Có mặt").length,
     late: students.filter((student) => student.attendance === "Đi muộn").length,
     absent: students.filter((student) => student.attendance.startsWith("Vắng")).length,
-    phone: 32 + students.filter((student) => student.phone !== "").length,
+    phone: students.filter((student) => student.phone !== "").length,
   }), [students]);
 
   const updateStudent = (id: string, key: "attendance" | "phone", value: string) => {
@@ -50,7 +56,10 @@ export default function Home() {
     window.setTimeout(() => setNotice(""), 1800);
   };
 
-  const navItems = ["Điểm danh", "Theo dõi lớp", "Quản trị"];
+  const navItems = session?.role === "admin" ? ["Điểm danh", "Theo dõi lớp", "Quản trị"] : ["Điểm danh", "Theo dõi lớp"];
+
+  if (authLoading) return <div className="auth-loading"><img src="/fpt-schools-logo.png" alt="FPT Schools" /><span>Đang khởi động hệ thống...</span></div>;
+  if (!session) return <main className="login-page"><section className="login-visual"><img src="/fpt-schools-logo.png" alt="FPT Schools" /><div><span className="eyebrow">FSCHOOL ATTEND</span><h1>Mỗi buổi sáng,<br />một khởi đầu chủ động.</h1><p>Điểm danh nhanh, theo dõi điện thoại rõ ràng và kết nối giáo viên trong toàn trường.</p></div><div className="brand-stripes"><i /><i /><i /></div></section><section className="login-panel"><form className="login-card" onSubmit={login}><div className="login-mark">✓</div><h2>Đăng nhập hệ thống</h2><p>Sử dụng tài khoản do quản trị viên cấp.</p><label>Tên đăng nhập<input name="username" required autoComplete="username" placeholder="Nhập tên đăng nhập" /></label><label>Mật khẩu<input name="password" type="password" required autoComplete="current-password" placeholder="Nhập mật khẩu" /></label>{loginError && <div className="login-error">{loginError}</div>}<button type="submit">Đăng nhập →</button><small>Liên hệ quản trị viên nếu bạn quên mật khẩu.</small></form></section></main>;
 
   return (
     <div className="app-shell">
@@ -62,23 +71,23 @@ export default function Home() {
         <nav className={mobileMenu ? "nav open" : "nav"} aria-label="Điều hướng chính">
           {navItems.map((item) => <button key={item} className={active === item ? "active" : ""} onClick={() => { setActive(item); setMobileMenu(false); }}>{item}</button>)}
         </nav>
-        <div className="account"><span className="account-avatar">LT</span><span><strong>Đại diện 10A1</strong><small>Học sinh</small></span></div>
+        <button className="account" onClick={logout} title="Đăng xuất"><span className="account-avatar">{initials(session.name)}</span><span><strong>{session.name}</strong><small>{roleLabels[session.role]} · Đăng xuất</small></span></button>
         <button className="menu-button" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Mở menu">☰</button>
       </header>
 
       <main>
         {active === "Điểm danh" && <section className="page attendance-page">
           <div className="page-heading">
-            <div><span className="eyebrow">THỨ HAI · 03/08/2026</span><h1>Chào buổi sáng, lớp 10A1! 👋</h1><p>Hãy hoàn tất điểm danh và kiểm tra điện thoại trước khi vào tiết học.</p></div>
-            <div className="heading-controls"><label>Ngày<input type="date" defaultValue="2026-08-03" /></label><label>Lớp<select defaultValue="10A1"><option>10A1</option></select></label></div>
+            <div><span className="eyebrow">ĐIỂM DANH ĐẦU NGÀY</span><h1>Chào buổi sáng, {session.name}! 👋</h1><p>Hãy chọn lớp để bắt đầu điểm danh và kiểm tra điện thoại.</p></div>
+            <div className="heading-controls"><label>Ngày<input type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></label><label>Lớp<select disabled><option>Chưa có lớp</option></select></label></div>
           </div>
 
           <div className="metric-grid">
-            <article className="metric blue"><span className="metric-icon">👥</span><div><strong>40</strong><small>Tổng học sinh</small></div></article>
+            <article className="metric blue"><span className="metric-icon">👥</span><div><strong>{students.length}</strong><small>Tổng học sinh</small></div></article>
             <article className="metric green"><span className="metric-icon">✓</span><div><strong>{metrics.present}</strong><small>Có mặt</small></div></article>
             <article className="metric orange"><span className="metric-icon">◷</span><div><strong>{metrics.late}</strong><small>Đi muộn</small></div></article>
             <article className="metric red"><span className="metric-icon">!</span><div><strong>{metrics.absent}</strong><small>Vắng mặt</small></div></article>
-            <article className="metric purple"><span className="metric-icon">▯</span><div><strong>{metrics.phone}/40</strong><small>Đã cập nhật ĐT</small></div></article>
+            <article className="metric purple"><span className="metric-icon">▯</span><div><strong>{metrics.phone}/{students.length}</strong><small>Đã cập nhật ĐT</small></div></article>
           </div>
 
           <article className="workspace-card">
@@ -88,6 +97,7 @@ export default function Home() {
             </div>
             <div className="student-table">
               <div className="student-row table-head"><span>STT</span><span>Học sinh</span><span>Điểm danh</span><span>Điện thoại</span><span>Tình trạng</span></div>
+              {filtered.length === 0 && <div className="empty-state"><span>🎓</span><h3>Chưa có học sinh</h3><p>Quản trị viên có thể thêm học sinh trong khu vực Quản trị.</p>{session.role === "admin" && <button onClick={() => setActive("Quản trị")}>Đến trang quản trị →</button>}</div>}
               {filtered.map((student, index) => <div className="student-row" key={student.id}>
                 <span className="order">{String(index + 1).padStart(2, "0")}</span>
                 <div className="student-name"><span className="student-avatar">{initials(student.name)}</span><span><strong>{student.name}</strong><small>{student.id}</small></span></div>
@@ -102,14 +112,15 @@ export default function Home() {
 
         {active === "Theo dõi lớp" && <section className="page">
           <div className="page-heading"><div><span className="eyebrow">TOÀN TRƯỜNG</span><h1>Theo dõi điểm danh</h1><p>Nắm nhanh tình hình các lớp trong buổi sáng hôm nay.</p></div><div className="heading-controls"><label>Ngày<input type="date" defaultValue="2026-08-03" /></label></div></div>
-          <div className="overview-banner"><div><span>Tiến độ hôm nay</span><strong>43/50 lớp</strong><small>đã hoàn tất điểm danh</small></div><div className="progress"><i style={{ width: "86%" }} /></div><b>86%</b></div>
+          <div className="overview-banner"><div><span>Tiến độ hôm nay</span><strong>0/0 lớp</strong><small>đã hoàn tất điểm danh</small></div><div className="progress"><i style={{ width: "0%" }} /></div><b>0%</b></div>
+          {classes.length === 0 && <div className="empty-board"><span>🏫</span><h2>Chưa có lớp học</h2><p>Dữ liệu sẽ xuất hiện tại đây sau khi quản trị viên tạo lớp.</p></div>}
           <div className="class-grid">{classes.map((item, index) => <article className="class-card" key={item.name}><div className={`class-ribbon ribbon-${index % 3}`} /><div className="class-card-head"><span className="class-badge">{item.name}</span><span className={item.done ? "status-chip ready" : "status-chip waiting"}>{item.done ? "Đã hoàn tất" : "Chưa hoàn tất"}</span></div><h3>{item.teacher}</h3><small>Giáo viên chủ nhiệm</small><div className="class-stats"><span><b>{item.present}/{item.total}</b>Có mặt</span><span><b>{item.phone}/{item.total}</b>Điện thoại</span></div><button onClick={() => setActive("Điểm danh")}>Xem chi tiết →</button></article>)}</div>
         </section>}
 
         {active === "Quản trị" && <section className="page">
           <div className="page-heading"><div><span className="eyebrow">QUẢN TRỊ HỆ THỐNG</span><h1>Trung tâm quản lý</h1><p>Quản lý lớp học, học sinh, tài khoản và các quy tắc điểm danh.</p></div><button className="primary-button">＋ Tạo lớp mới</button></div>
           <div className="admin-grid">
-            {[{icon:"🏫", title:"Lớp học", value:"50", text:"Tạo lớp, phân công GVCN và đại diện lớp", color:"blue"},{icon:"🎓", title:"Học sinh", value:"1.000", text:"Thêm từng em hoặc nhập danh sách Excel/CSV", color:"orange"},{icon:"👩‍🏫", title:"Giáo viên", value:"70", text:"Tạo tài khoản và phân quyền theo từng lớp", color:"green"},{icon:"📱", title:"Trạng thái điện thoại", value:"4", text:"Tùy chỉnh tên, màu sắc và thứ tự hiển thị", color:"purple"}].map((item) => <article className="admin-card" key={item.title}><span className={`admin-icon ${item.color}`}>{item.icon}</span><div><small>{item.title}</small><strong>{item.value}</strong><p>{item.text}</p></div><button>Quản lý →</button></article>)}
+            {[{icon:"🏫", title:"Lớp học", value:"0", text:"Tạo lớp, phân công GVCN và đại diện lớp", color:"blue"},{icon:"🎓", title:"Học sinh", value:"0", text:"Thêm từng em hoặc nhập danh sách Excel/CSV", color:"orange"},{icon:"👩‍🏫", title:"Tài khoản & phân quyền", value:"1", text:"Quản lý tài khoản và quyền truy cập theo lớp", color:"green"},{icon:"📱", title:"Trạng thái điện thoại", value:"4", text:"Tùy chỉnh tên, màu sắc và thứ tự hiển thị", color:"purple"}].map((item) => <article className="admin-card" key={item.title}><span className={`admin-icon ${item.color}`}>{item.icon}</span><div><small>{item.title}</small><strong>{item.value}</strong><p>{item.text}</p></div><button onClick={() => setNotice("Sẵn sàng kết nối cơ sở dữ liệu")}>Quản lý →</button></article>)}
           </div>
           <article className="quick-card"><div><span className="quick-icon">⇧</span><div><h2>Nhập danh sách học sinh</h2><p>Tải lên tệp Excel/CSV hoặc dán danh sách để thêm nhiều học sinh cùng lúc.</p></div></div><button>Nhập danh sách</button></article>
         </section>}

@@ -1,0 +1,3 @@
+import { NextRequest, NextResponse } from "next/server";
+import { authenticate, createSession } from "../../../../lib/auth";
+export async function POST(request: NextRequest) { const { username = "", password = "" } = await request.json(); const user = authenticate(String(username).trim(), String(password)); if (!user) return NextResponse.json({ error: "Tên đăng nhập hoặc mật khẩu không đúng" }, { status: 401 }); try { const response = NextResponse.json({ user }); response.cookies.set("fschool_session", await createSession(user), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 28800, path: "/" }); return response; } catch { return NextResponse.json({ error: "Hệ thống chưa được cấu hình SESSION_SECRET" }, { status: 503 }); } }
